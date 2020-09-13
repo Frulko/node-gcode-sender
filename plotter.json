@@ -1,0 +1,4 @@
+{
+  "address": "/dev/ttyAMA0",
+  "port": "115200"
+}
