@@ -12,6 +12,8 @@ const scripts = [
   script3
 ];
 
+console.log('hello');
+
 Array.prototype.sample = function(){
   return this[Math.floor(Math.random()*this.length)];
 }
