@@ -20,8 +20,9 @@ class GCodeSender {
     this.firstStart = true;
     this.queueCommand = [];
     this.isFinished = true;
+    this.isPaused = false;
     this.handleLoadClose = () => {};
-
+    this.onConnected = () => {};
     
     // this.send('M3S20');
     // this.send('M3S45');
@@ -30,6 +31,10 @@ class GCodeSender {
   // this.loadFile();
 
     // this.calibrate(false);
+  }
+
+  onConnected(cb) {
+    this.onConnected = cb;
   }
 
   loadConfig() {
@@ -89,8 +94,8 @@ class GCodeSender {
     this.serialInstance = null;
     this.connexionPortAddress = this.config.address; 
     this.connexionBaudRate = this.config.port;
-    this.bar = new ProgressBar(':bar', { total: this.queueCommand.length });
-    console.log('-', this.queueCommand.length)
+    // this.bar = new ProgressBar(':bar', { total: this.queueCommand.length });
+    // console.log('-', this.queueCommand.length)
     this.connect();
   }
 
@@ -99,7 +104,7 @@ class GCodeSender {
       this.disconnect();
     }
 
-    console.log('Atempt to connect to', this.connexionPortAddress)
+    // console.log('Atempt to connect to', this.connexionPortAddress)
     this.serialInstance = new SerialPort(this.connexionPortAddress, { autoOpen: false, baudRate: this.connexionBaudRate });
     this.serialInstance.open((err) => {
       if (err) {
@@ -111,6 +116,28 @@ class GCodeSender {
     this.serialInstance.on('data', this.onData.bind(this))
   }
 
+  upPen() {
+    const formattedCommand = `M03S0\r\n`;
+    this.serialInstance.write(Buffer.from(formattedCommand));
+  }
+
+  downPen() {
+    const formattedCommand = `M3S90\r\n`;
+    this.serialInstance.write(Buffer.from(formattedCommand));
+  }
+
+  pause() {
+    this.isPaused = true;
+    setTimeout(() => {
+      this.upPen();
+    }, 2000);
+  }
+
+  start() {
+    this.isPaused = false;
+    this.executeCommand();
+  }
+
   disconnect() {
     this.serialInstance.disconnect();
   }
@@ -118,6 +145,7 @@ class GCodeSender {
   onOpen() {
     console.log('Connected to plotter !');
     this.isConnected = true;
+    this.onConnected();
     this.executeCommand();
   }
   
@@ -141,7 +169,7 @@ class GCodeSender {
     if (this.queueCommand.length > 0 && this.isWaitingApprove && this.checkApprove(data) ) {
       this.isWaitingApprove = false;
       this.queueCommand.shift();
-      this.bar.tick();
+      // this.bar.tick();
       this.executeCommand();
     }
   }
@@ -152,6 +180,10 @@ class GCodeSender {
   }
 
   executeCommand() {
+
+    if (this.isPaused) {
+      return;
+    }
 
     if (!this.isConnected) {
       return;

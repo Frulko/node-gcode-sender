@@ -22,20 +22,38 @@ Array.prototype.sample = function(){
 
 const s = new GCodeSender();
 // s.setGCode(d);
-// s.loadFile('./output.gcode');
+// s.loadFile('./output.10.gcode');
+
+setTimeout(() => {
+  // s.calibrate(true)
+  s.upPen()
+}, 2500)
+
 s.init();
 s.onLoadFinished(() => {
   console.log('finish load');
   s.executeCommand();
 });
 
+
+
 const b = new Button(23);
 b.onPush((err, val) => {
-  // console.log('->', val)
-  if (val == 1 && s.isFinished) {
+  console.log('->', val, s.isFinished, s.queueCommand.length)
+  if (val == 1) {
     // s.init();
-    const sc = scripts.sample();
-    s.setGCode(sc());
+    if(s.queueCommand.length < 1) {
+      s.upPen();
+      const sc = scripts.sample();
+      s.setGCode(sc());
+    } else {
+      if (s.isPaused) {
+        s.start();
+      } else {
+        s.pause();
+      }
+    }
+    
     
     // s.init();
     // console.log('here');
